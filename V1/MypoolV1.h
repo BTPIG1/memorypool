@@ -28,34 +28,22 @@ namespace memoryPoolV1 {
 		void* allocate();
 
 		void deallocate(void*);
-
 	private:
-		std::atomic<Slot*> freeList_;
-		Slot* firstSlot_;
-		Slot* curSlot_;
-		Slot* lastSlot_;
-
-		int BlockSize_; // 内存池总大小
-		int SlotSize_; // 一个块大小
-		//std::mutex mutexForFreeList_; // 保证多线程下对空闲链表操作原子性
-		std::mutex mutexForBlock_;
-
-	private:
-		void allocateNewBlock(); 
+		void allocateNewBlock();
 		size_t padPointer(char* p, size_t align);
 
 		// 使用CAS操作进行无锁入队和出队
 		bool pushFreeList(Slot* slot);
 		Slot* popFreeList();
-private:
-    int                 BlockSize_; // 内存块大小
-    int                 SlotSize_; // 槽大小
-    Slot*               firstBlock_; // 指向内存池管理的首个实际内存块
-    Slot*               curSlot_; // 指向当前未被使用过的槽
-    std::atomic<Slot*>  freeList_; // 指向空闲的槽(被使用过后又被释放的槽)
-    Slot*               lastSlot_; // 作为当前内存块中最后能够存放元素的位置标识(超过该位置需申请新的内存块)
-    //std::mutex          mutexForFreeList_; // 保证freeList_在多线程中操作的原子性
-    std::mutex          mutexForBlock_; // 保证多线程情况下避免不必要的重复开辟内存导致的浪费行为
+	private:
+		int                 BlockSize_; // 内存块大小
+		int                 SlotSize_; // 槽大小
+		Slot* firstSlot_; // 指向内存池管理的首个实际内存块
+		Slot* curSlot_; // 指向当前未被使用过的槽
+		std::atomic<Slot*>  freeList_; // 指向空闲的槽(被使用过后又被释放的槽)
+		Slot* lastSlot_; // 作为当前内存块中最后能够存放元素的位置标识(超过该位置需申请新的内存块)
+		//std::mutex          mutexForFreeList_; // 保证freeList_在多线程中操作的原子性
+		std::mutex          mutexForBlock_; // 保证多线程情况下避免不必要的重复开辟内存导致的浪费行为
 	};
 
 	// 定义HashBucket： 类似于哈希表，根据分配内存的大小映射到不同的内存池，注意：这是无模板的，因为并不在乎数据类型，只关注数据的内存大小
@@ -90,7 +78,7 @@ private:
 	template<typename T, typename ...Args>  // typename... Args可变参数模板；Args... args 接受多个参数；sizeof...(Args)获取参数个数；print(args...)展开参数包；std::forward<Args>(args)...完美转发
 	T* newElement(Args&&... args) {
 		T* p = nullptr;
-		if (p = reinterpret_cast<T*>(HashBucket::useMemory(sizeof(T))) != nullptr) {  // p是指向T大小的内存，并未初始化
+		if ((p = reinterpret_cast<T*>(HashBucket::useMemory(sizeof(T)))) != nullptr) {  // p是指向T大小的内存，并未初始化
 			new(p) T(std::forward<Args>(args)...); // ？？这是什么操作？ new(p)表示在内存块p上构造T对象；std::forward<Args>(args)...完美转发当前函数的参数给T的构造函数
 		}
 		return p;

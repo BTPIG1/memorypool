@@ -53,7 +53,20 @@ namespace memoryPoolV1 {
 
 	void MemoryPool::allocateNewBlock() {
 
-    freeList_ = nullptr;
+		//std::cout << "申请一块内存块，SlotSize: " << SlotSize_ << std::endl;
+		// 头插法插入新的内存块
+		void* newBlock = operator new(BlockSize_);
+		reinterpret_cast<Slot*>(newBlock)->next = firstSlot_;  // 那么现在分配的内存块如何通过析构销毁资源呢？
+		firstSlot_ = reinterpret_cast<Slot*>(newBlock);
+
+		char* body = reinterpret_cast<char*>(newBlock) + sizeof(Slot*);
+		size_t paddingSize = padPointer(body, SlotSize_); // 计算对齐需要填充内存的大小
+		curSlot_ = reinterpret_cast<Slot*>(body + paddingSize);
+
+		// 超过该标记位置，则说明该内存块已无内存槽可用，需向系统申请新的内存块
+		lastSlot_ = reinterpret_cast<Slot*>(reinterpret_cast<size_t>(newBlock) + BlockSize_ - SlotSize_ + 1);
+
+		freeList_ = nullptr;
 	}
 
 	size_t MemoryPool::padPointer(char* p, size_t align) {
