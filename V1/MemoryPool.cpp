@@ -82,7 +82,7 @@ namespace memoryPoolV1 {
 
 			// 尝试将新节点设置为头节点
 			if (freeList_.compare_exchange_weak(oldHead, slot,
-				std::memory_order_release, std::memory_order_relaxed))
+				std::memory_order_release, std::memory_order_relaxed)) // 成功：写操作，失败：无序
 			{
 				return true;
 			}
@@ -97,7 +97,7 @@ namespace memoryPoolV1 {
 			if (oldHead == nullptr)return nullptr;
 			Slot* newHead = oldHead->next.load(std::memory_order_relaxed); // 为什么要这样设置内存模型？
 			if (freeList_.compare_exchange_weak(oldHead, newHead,
-				std::memory_order_acquire, std::memory_order_relaxed)) {
+				std::memory_order_acquire, std::memory_order_relaxed)) { // 成功：读操作，失败：无序
 				return oldHead;
 			}
         // 失败：说明另一个线程可能已经修改了 freeList_
